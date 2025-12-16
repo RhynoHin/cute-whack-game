@@ -47,6 +47,7 @@ body{
   justify-content:center;
   font-size:40px;
   transition: transform 0.2s;
+  cursor:pointer;
 }
 .mole.show{
   animation: pop 0.5s forwards;
@@ -62,66 +63,83 @@ body{
 <div id="scoreBoard">Score: 0</div>
 <div id="game"></div>
 <script>
-const gameBoard=document.getElementById('game');
-const scoreBoard=document.getElementById('scoreBoard');
-const startBtn=document.getElementById('startBtn');
-let score=0;
-let gameActive=false;
+const gameBoard = document.getElementById('game');
+const scoreBoard = document.getElementById('scoreBoard');
+const startBtn = document.getElementById('startBtn');
+let score = 0;
+let gameActive = false;
 let audioCtx;
+const animals = ['🐻','🐶','🐱','🐹','🐰']; // first is bear (target)
+
 function createBoard(){
-  gameBoard.innerHTML='';
-  for(let i=0;i<9;i++){
-    const hole=document.createElement('div');
+  gameBoard.innerHTML = '';
+  for(let i=0; i<9; i++){
+    const hole = document.createElement('div');
     hole.classList.add('hole');
-    const mole=document.createElement('div');
+    const mole = document.createElement('div');
     mole.classList.add('mole');
-    mole.textContent='🐹';
+    mole.textContent = '';
+    mole.dataset.target = 'false';
     mole.addEventListener('click', whack);
     hole.appendChild(mole);
     gameBoard.appendChild(hole);
   }
 }
+
 function whack(e){
   if(!gameActive) return;
-  score++;
-  scoreBoard.textContent='Score: '+score;
-  // play click sound
-  const osc=audioCtx.createOscillator();
-  const gain=audioCtx.createGain();
-  osc.frequency.value=600;
-  osc.type='square';
+  const mole = e.currentTarget;
+  if(!mole.classList.contains('show')) return;
+  if(mole.dataset.target === 'true'){
+    score += 10;
+  } else {
+    score -= 5;
+    if(score < 0) score = 0;
+  }
+  scoreBoard.textContent = 'Score: ' + score;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = 600;
+  osc.type = 'square';
   gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
   osc.connect(gain).connect(audioCtx.destination);
   osc.start();
-  osc.stop(audioCtx.currentTime+0.1);
-  // animate shrink
-  const mole=e.currentTarget;
-  mole.style.transform='scale(0.8) rotateX(20deg)';
-  setTimeout(()=>{ mole.style.transform=''; },150);
+  osc.stop(audioCtx.currentTime + 0.1);
+  mole.style.transform = 'scale(0.8) rotateX(20deg)';
+  setTimeout(() => { mole.style.transform = ''; }, 150);
+  mole.classList.remove('show');
 }
-function randomTime(min,max){ return Math.round(Math.random()*(max-min)+min); }
+
 function showMole(){
-  const holes=Array.from(document.querySelectorAll('.hole'));
-  const idx=Math.floor(Math.random()*holes.length);
-  const mole=holes[idx].querySelector('.mole');
+  const holes = Array.from(document.querySelectorAll('.hole'));
+  const idx = Math.floor(Math.random()*holes.length);
+  const mole = holes[idx].querySelector('.mole');
+  const randIndex = Math.floor(Math.random()*animals.length);
+  const emoji = animals[randIndex];
+  mole.textContent = emoji;
+  mole.dataset.target = (randIndex === 0).toString();
   mole.classList.add('show');
-  setTimeout(()=>{ mole.classList.remove('show'); },800);
+  setTimeout(() => {
+    mole.classList.remove('show');
+  }, 800);
 }
+
 function startGame(){
   if(gameActive) return;
-  score=0;
-  scoreBoard.textContent='Score: 0';
+  score = 0;
+  scoreBoard.textContent = 'Score: 0';
   createBoard();
-  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  gameActive=true;
-  const duration=30000; // 30 seconds
-  const interval=setInterval(showMole,700);
-  setTimeout(()=>{
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  gameActive = true;
+  const duration = 30000;
+  const interval = setInterval(showMole, 700);
+  setTimeout(() => {
     clearInterval(interval);
-    gameActive=false;
-    alert('Game over! Your score: '+score);
-  },duration);
+    gameActive = false;
+    alert('Game over! Your score: ' + score);
+  }, duration);
 }
+
 startBtn.addEventListener('click', startGame);
 createBoard();
 </script>
