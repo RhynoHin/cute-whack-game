@@ -56,20 +56,29 @@ body{
   from{ bottom:-100%; }
   to{ bottom:10%; }
 }
+#hint{
+  margin-top:10px;
+  font-weight:bold;
+}
 </style>
 </head>
 <body>
 <button id="startBtn">Start Game</button>
-<div id="scoreBoard">Score: 0</div>
+<div id="scoreBoard">Score: 0 | Round: 1/5</div>
+<div id="hint">Hit the 🦏 to score! Other animals will cost points.</div>
 <div id="game"></div>
 <script>
 const gameBoard = document.getElementById('game');
 const scoreBoard = document.getElementById('scoreBoard');
 const startBtn = document.getElementById('startBtn');
+const hint = document.getElementById('hint');
 let score = 0;
 let gameActive = false;
 let audioCtx;
-const animals = ['🐻','🐶','🐱','🐹','🐰']; // first is bear (target)
+let round = 1;
+const maxRounds = 5;
+const baseInterval = 700;
+const animals = ['🦏','🐶','🐱','🐹','🐰']; // first is rhino (target)
 
 function createBoard(){
   gameBoard.innerHTML = '';
@@ -86,6 +95,10 @@ function createBoard(){
   }
 }
 
+function updateScoreBoard(){
+  scoreBoard.textContent = 'Score: ' + score + ' | Round: ' + round + '/' + maxRounds;
+}
+
 function whack(e){
   if(!gameActive) return;
   const mole = e.currentTarget;
@@ -96,7 +109,7 @@ function whack(e){
     score -= 5;
     if(score < 0) score = 0;
   }
-  scoreBoard.textContent = 'Score: ' + score;
+  updateScoreBoard();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.frequency.value = 600;
@@ -124,20 +137,31 @@ function showMole(){
   }, 800);
 }
 
+function runRound(){
+  updateScoreBoard();
+  const intervalTime = Math.max(200, baseInterval - (round - 1) * 100);
+  const interval = setInterval(showMole, intervalTime);
+  setTimeout(() => {
+    clearInterval(interval);
+    if(round < maxRounds){
+      round++;
+      runRound();
+    } else {
+      gameActive = false;
+      alert('Game over! Your score: ' + score);
+    }
+  }, 30000);
+}
+
 function startGame(){
   if(gameActive) return;
   score = 0;
-  scoreBoard.textContent = 'Score: 0';
+  round = 1;
+  hint.textContent = 'Hit the 🦏 to score! Other animals will cost points.';
   createBoard();
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   gameActive = true;
-  const duration = 30000;
-  const interval = setInterval(showMole, 700);
-  setTimeout(() => {
-    clearInterval(interval);
-    gameActive = false;
-    alert('Game over! Your score: ' + score);
-  }, duration);
+  runRound();
 }
 
 startBtn.addEventListener('click', startGame);
