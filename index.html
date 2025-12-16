@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cute Whack Game</title>
+<style>
+body{
+  margin:0;
+  font-family: sans-serif;
+  background: radial-gradient(circle at center, #ffe, #fce4ec);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+  overflow:hidden;
+}
+#game{
+  perspective: 800px;
+  display:grid;
+  grid-template-columns: repeat(3, 100px);
+  grid-gap: 15px;
+  margin-top:20px;
+}
+.hole{
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  position:relative;
+  background: #ffd1dc;
+  box-shadow: inset 0 5px 10px rgba(0,0,0,0.2), 0 5px 10px rgba(0,0,0,0.3);
+  overflow:hidden;
+}
+.mole{
+  position:absolute;
+  bottom:-100%;
+  left:0;
+  right:0;
+  margin:auto;
+  width:80px;
+  height:80px;
+  border-radius:50%;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:40px;
+  transition: transform 0.2s;
+}
+.mole.show{
+  animation: pop 0.5s forwards;
+}
+@keyframes pop{
+  from{ bottom:-100%; }
+  to{ bottom:10%; }
+}
+</style>
+</head>
+<body>
+<button id="startBtn">Start Game</button>
+<div id="scoreBoard">Score: 0</div>
+<div id="game"></div>
+<script>
+const gameBoard=document.getElementById('game');
+const scoreBoard=document.getElementById('scoreBoard');
+const startBtn=document.getElementById('startBtn');
+let score=0;
+let gameActive=false;
+let audioCtx;
+function createBoard(){
+  gameBoard.innerHTML='';
+  for(let i=0;i<9;i++){
+    const hole=document.createElement('div');
+    hole.classList.add('hole');
+    const mole=document.createElement('div');
+    mole.classList.add('mole');
+    mole.textContent='🐹';
+    mole.addEventListener('click', whack);
+    hole.appendChild(mole);
+    gameBoard.appendChild(hole);
+  }
+}
+function whack(e){
+  if(!gameActive) return;
+  score++;
+  scoreBoard.textContent='Score: '+score;
+  // play click sound
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.frequency.value=600;
+  osc.type='square';
+  gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime+0.1);
+  // animate shrink
+  const mole=e.currentTarget;
+  mole.style.transform='scale(0.8) rotateX(20deg)';
+  setTimeout(()=>{ mole.style.transform=''; },150);
+}
+function randomTime(min,max){ return Math.round(Math.random()*(max-min)+min); }
+function showMole(){
+  const holes=Array.from(document.querySelectorAll('.hole'));
+  const idx=Math.floor(Math.random()*holes.length);
+  const mole=holes[idx].querySelector('.mole');
+  mole.classList.add('show');
+  setTimeout(()=>{ mole.classList.remove('show'); },800);
+}
+function startGame(){
+  if(gameActive) return;
+  score=0;
+  scoreBoard.textContent='Score: 0';
+  createBoard();
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  gameActive=true;
+  const duration=30000; // 30 seconds
+  const interval=setInterval(showMole,700);
+  setTimeout(()=>{
+    clearInterval(interval);
+    gameActive=false;
+    alert('Game over! Your score: '+score);
+  },duration);
+}
+startBtn.addEventListener('click', startGame);
+createBoard();
+</script>
+</body>
+</html>
